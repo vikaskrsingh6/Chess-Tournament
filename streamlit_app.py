@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Chess Tournament Live", layout="wide")
+st.set_page_config(page_title="Chessers Chess Tournament", layout="wide")
 st.title("🏆 Live Chess Tournament Dashboard")
 
 # Your exact Google Sheet ID from your URL
@@ -11,7 +11,12 @@ sheet_id = "1wFk8_qx7iHsVnOk_dq93yXn6OcHaODLvmt7E_h06oBM"
 @st.cache_data(ttl=300) # Caches data for 5 minutes to keep your app fast
 def load_data(sheet_name):
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
-    return pd.read_csv(url)
+    df = pd.read_csv(url)
+    
+    # Prune any phantom columns created by Google Sheets
+    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+    
+    return df
 
 # Load your specific tabs
 tourney_info = load_data("Tournament_Info")
