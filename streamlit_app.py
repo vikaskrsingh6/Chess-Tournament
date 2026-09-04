@@ -1,20 +1,22 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
+import pandas as pd
 
 st.set_page_config(page_title="Chess Tournament Live", layout="wide")
 st.title("🏆 Live Chess Tournament Dashboard")
 
-# Connect to the Google Sheet
-conn = st.connection("gsheets", type=GSheetsConnection)
+# Your exact Google Sheet ID from your URL
+sheet_id = "1wFk8_qx7iHsVnOk_dq93yXn6OcHaODLvmt7E_h06oBM"
 
-# Replace the URL below with the actual link to your Google Sheet
-# Ensure your Google Sheet is set to "Anyone with the link can view"
-sheet_url = "https://docs.google.com/spreadsheets/d/1wFk8_qx7iHsVnOk_dq93yXn6OcHaODLvmt7E_h06oBM/edit?usp=sharing"
+# This function safely downloads the public tabs as CSVs directly
+@st.cache_data(ttl=300) # Caches data for 5 minutes to keep your app fast
+def load_data(sheet_name):
+    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+    return pd.read_csv(url)
 
-# Read the data from the specific tabs you created
-tourney_info = conn.read(spreadsheet=sheet_url, worksheet="Tournament_Info", ttl="5m")
-matches = conn.read(spreadsheet=sheet_url, worksheet="Match_Structure", ttl="5m")
-stats = conn.read(spreadsheet=sheet_url, worksheet="Lifetime_Stats", ttl="5m")
+# Load your specific tabs
+tourney_info = load_data("Tournament_Info")
+matches = load_data("Match_Structure")
+stats = load_data("Lifetime_Stats")
 
 # Create visual tabs in the web app
 tab1, tab2, tab3 = st.tabs(["Live Matches", "Tournament Info", "Player Lifetime Stats"])
