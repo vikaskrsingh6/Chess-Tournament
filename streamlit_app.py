@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 st.set_page_config(page_title="Chessers Chess Tournament", layout="wide")
-st.title("🏆 Live Chess Tournament Dashboard")
+st.title("🏆 Chessers Chess Tournament Dashboard")
 
 # Your exact Google Sheet ID from your URL
 sheet_id = "1wFk8_qx7iHsVnOk_dq93yXn6OcHaODLvmt7E_h06oBM"
