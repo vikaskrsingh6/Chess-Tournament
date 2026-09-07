@@ -8,7 +8,7 @@ st.title("🏆 Chessers Chess Tournament Dashboard")
 # Your exact Google Sheet ID
 sheet_id = "1wFk8_qx7iHsVnOk_dq93yXn6OcHaODLvmt7E_h06oBM"
 
-# Function to safely download public tabs as CSVs
+# Function to safely download public tabs as CSVs by exact sheet name
 @st.cache_data(ttl=300)
 def load_data(sheet_name):
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
@@ -19,7 +19,7 @@ def load_data(sheet_name):
     
     return df
 
-# Load specific tabs (ensure your new Google Sheet tab is named "Standings")
+# Load specific tabs explicitly by their Google Sheet tab names
 tourney_info = load_data("Tournament_Info")
 matches = load_data("Match_Structure")
 standings = load_data("Standings")
