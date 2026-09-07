@@ -19,21 +19,22 @@ def load_data(sheet_name):
     
     return df
 
-# Load specific tabs
+# Load specific tabs (ensure your new Google Sheet tab is named "Standings")
 tourney_info = load_data("Tournament_Info")
 matches = load_data("Match_Structure")
+standings = load_data("Standings")
 stats = load_data("Lifetime_Stats")
 
 # Create visual tabs
-tab1, tab2, tab3 = st.tabs(["Live Matches", "Tournament Info", "Player Lifetime Stats"])
+tab1, tab2, tab3, tab4 = st.tabs(["Live Matches", "Standings", "Tournament Info", "Player Lifetime Stats"])
 
 with tab1:
     st.header("Current Match Structure")
     
-    # 1. Password input box
+    # Password input box
     entered_password = st.text_input("Enter Admin Password to Edit Results", type="password")
     
-    # 2. Validate password
+    # Validate password
     if entered_password == st.secrets["admin_password"]:
         st.success("Admin access granted!")
         st.write("Edit the 'Result' column below and click Save.")
@@ -74,9 +75,13 @@ with tab1:
         st.dataframe(matches, use_container_width=True, hide_index=True)
 
 with tab2:
+    st.header("Current Standings")
+    st.dataframe(standings, use_container_width=True, hide_index=True)
+
+with tab3:
     st.header("Active Tournament Details")
     st.dataframe(tourney_info, use_container_width=True, hide_index=True)
 
-with tab3:
+with tab4:
     st.header("Lifetime Player Statistics")
     st.dataframe(stats, use_container_width=True, hide_index=True)
