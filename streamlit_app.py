@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import requests
 
 st.set_page_config(page_title="Chessers Chess Tournament", layout="wide")
 st.title("🏆 Chessers Chess Tournament Dashboard")
@@ -28,7 +29,29 @@ tab1, tab2, tab3 = st.tabs(["Live Matches", "Tournament Info", "Player Lifetime 
 
 with tab1:
     st.header("Current Match Structure")
-    st.dataframe(matches, use_container_width=True, hide_index=True)
+    st.write("Edit the 'Result' column below and click Save to push updates to the database.")
+    
+    # Change st.dataframe to st.data_editor to make the table interactive
+    edited_matches = st.data_editor(matches, use_container_width=True, hide_index=True)
+    
+    if st.button("Save Match Results"):
+        # Convert the edited table back into a raw format for Google Sheets
+        updated_data = [edited_matches.columns.values.tolist()] + edited_matches.values.tolist()
+        
+        # Send the data to your Apps Script URL
+        # IMPORTANT: Replace the placeholder below with your actual deployed URL
+        web_app_url = "https://script.google.com/macros/s/AKfycbzzbf-OzXtCAGH6ihZBPiIMQriWQJWYMITIDMW-Ry5FYwvA3FHSVF-ZFfntcE-wz2k/exec"
+        
+        try:
+            response = requests.post(web_app_url, json=updated_data)
+            
+            if response.text == "Success":
+                st.success("Successfully updated the live database!")
+                st.cache_data.clear() # Forces Streamlit to instantly download the fresh data
+            else:
+                st.error(f"Failed to update. Google Script Response: {response.text}")
+        except Exception as e:
+            st.error(f"Failed to connect to the database: {e}")
 
 with tab2:
     st.header("Active Tournament Details")
