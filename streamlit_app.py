@@ -31,9 +31,9 @@ selected_player = st.selectbox("Select a player to filter the dashboard views:",
 
 # Filter the public viewing dataframes based on selection
 if selected_player != "All Players":
-    display_matches = matches[(matches["Player_1"] == selected_player) | (matches["Player_2"] == selected_player)]
+    display_matches = matches[(matches["Player 1"] == selected_player) | (matches["Player 2"] == selected_player)]
     display_standings = standings[standings["Player"] == selected_player]
-    display_stats = stats[stats["Player"] == selected_player]
+    display_stats = stats[stats["Player Name"] == selected_player]
 else:
     display_matches = matches
     display_standings = standings
