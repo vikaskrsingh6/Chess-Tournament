@@ -13,9 +13,13 @@ sheet_id = "1wFk8_qx7iHsVnOk_dq93yXn6OcHaODLvmt7E_h06oBM"
 
 @st.cache_data(ttl=300)
 def load_data(sheet_name):
-    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+    # The &headers=1 parameter forces Google to only use the top row as the header
+    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}&headers=1"
     df = pd.read_csv(url)
+    
+    # Prune any phantom columns created by Google Sheets
     df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+    
     return df
 
 tourney_info = load_data("Tournament_Info")
