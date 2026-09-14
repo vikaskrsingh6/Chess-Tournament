@@ -28,8 +28,8 @@ def generate_swiss_pairings(standings_df, matches_df):
     past_byes = set()
     
     for _, row in matches_df.iterrows():
-        # Ensure your Google Sheet uses "Player_1" and "Player_2" as headers
-        p1, p2 = row["Player_1"], row["Player_2"] 
+        # Ensure your Google Sheet uses "Player 1" and "Player 2" as headers
+        p1, p2 = row["Player 1"], row["Player 2"] 
         if p1 == "BYE": past_byes.add(p2)
         elif p2 == "BYE": past_byes.add(p1)
         else:
@@ -46,7 +46,7 @@ def generate_swiss_pairings(standings_df, matches_df):
     if len(unpaired) % 2 != 0:
         for player in reversed(unpaired):
             if player not in past_byes:
-                new_matches.append({"Player_1": player, "Player_2": "BYE", "Result": "Player 1 Wins"})
+                new_matches.append({"Player 1": player, "Player 2": "BYE", "Result": "Player 1 Wins"})
                 unpaired.remove(player)
                 break
 
@@ -57,7 +57,7 @@ def generate_swiss_pairings(standings_df, matches_df):
         
         for i, p2 in enumerate(unpaired):
             if frozenset([p1, p2]) not in played_pairs:
-                new_matches.append({"Player_1": p1, "Player_2": p2, "Result": "Pending"})
+                new_matches.append({"Player 1": p1, "Player 2": p2, "Result": "Pending"})
                 unpaired.pop(i)
                 paired = True
                 break
