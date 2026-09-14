@@ -118,7 +118,8 @@ with tab1:
         )
         
         if st.button("Save Match Results"):
-            updated_data = [edited_matches.columns.values.tolist()] + edited_matches.values.tolist()
+		clean_edited_matches = edited_matches.fillna("")            
+		updated_data = [edited_matches.columns.values.tolist()] + edited_matches.values.tolist()
             
             secure_payload = {
                 "password": st.secrets["admin_password"],
@@ -150,6 +151,9 @@ with tab1:
                 # Combine old matches with the newly generated matches
                 new_matches_df = pd.DataFrame(new_pairings)
                 updated_matches = pd.concat([matches, new_matches_df], ignore_index=True)
+
+		# --- THE FIX: Replace all NaN values with empty strings ---
+                updated_matches = updated_matches.fillna("")
                 
                 # Format for Google Apps Script
                 updated_data = [updated_matches.columns.values.tolist()] + updated_matches.values.tolist()
