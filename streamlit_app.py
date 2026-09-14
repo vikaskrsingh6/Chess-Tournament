@@ -16,12 +16,59 @@ def load_data(sheet_name):
     # The &headers=1 parameter forces Google to only use the top row as the header
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}&headers=1"
     df = pd.read_csv(url)
-    
+
     # Prune any phantom columns created by Google Sheets
     df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
     
     return df
 
+def generate_swiss_pairings(standings_df, matches_df):
+    # 1. Map out historical matchups and previous BYEs
+    played_pairs = set()
+    past_byes = set()
+    
+    for _, row in matches_df.iterrows():
+        # Ensure your Google Sheet uses "Player_1" and "Player_2" as headers
+        p1, p2 = row["Player_1"], row["Player_2"] 
+        if p1 == "BYE": past_byes.add(p2)
+        elif p2 == "BYE": past_byes.add(p1)
+        else:
+            played_pairs.add(frozenset([p1, p2]))
+
+    # 2. RANDOM SHUFFLE: Shuffle the dataframe first, then sort by Points 
+    shuffled_players = standings_df.sample(frac=1).reset_index(drop=True)
+    sorted_players = shuffled_players.sort_values(by="Points", ascending=False, kind="mergesort")["Player"].tolist()
+    
+    new_matches = []
+    unpaired = sorted_players.copy()
+
+    # 3. Handle Odd Player Out (BYE)
+    if len(unpaired) % 2 != 0:
+        for player in reversed(unpaired):
+            if player not in past_byes:
+                new_matches.append({"Player_1": player, "Player_2": "BYE", "Result": "Player 1 Wins"})
+                unpaired.remove(player)
+                break
+
+    # 4. Pair remaining players based on closest score
+    while unpaired:
+        p1 = unpaired.pop(0)
+        paired = False
+        
+        for i, p2 in enumerate(unpaired):
+            if frozenset([p1, p2]) not in played_pairs:
+                new_matches.append({"Player_1": p1, "Player_2": p2, "Result": "Pending"})
+                unpaired.pop(i)
+                paired = True
+                break
+                
+        if not paired:
+            # If no valid opponent is found, mathematical dead-end reached
+            return None 
+
+    return new_matches
+
+# Load the data
 tourney_info = load_data("Tournament_Info")
 matches = load_data("Match_Structure")
 standings = load_data("Standings")
@@ -35,7 +82,8 @@ selected_player = st.selectbox("Select a player to filter the dashboard views:",
 
 # Filter the public viewing dataframes based on selection
 if selected_player != "All Players":
-    display_matches = matches[(matches["Player 1"] == selected_player) | (matches["Player 2"] == selected_player)]
+    # Adjust "Player_1" to "Player 1" here if your spreadsheet doesn't use underscores!
+    display_matches = matches[(matches["Player_1"] == selected_player) | (matches["Player_2"] == selected_player)]
     display_standings = standings[standings["Player"] == selected_player]
     display_stats = stats[stats["Player Name"] == selected_player]
 else:
@@ -88,12 +136,46 @@ with tab1:
                     st.error(f"Failed to update. Google Script Response: {response.text}")
             except Exception as e:
                 st.error(f"Failed to connect to the database: {e}")
+        
+        # --- NEW TOURNAMENT CONTROLS ---
+        st.divider() 
+        st.subheader("Tournament Controls")
+        
+        if st.button("Generate Next Round"):
+            new_pairings = generate_swiss_pairings(standings, matches)
+            
+            if new_pairings is None:
+                st.error("Cannot generate more rounds: All valid combinations have been played!")
+            else:
+                # Combine old matches with the newly generated matches
+                new_matches_df = pd.DataFrame(new_pairings)
+                updated_matches = pd.concat([matches, new_matches_df], ignore_index=True)
                 
+                # Format for Google Apps Script
+                updated_data = [updated_matches.columns.values.tolist()] + updated_matches.values.tolist()
+                
+                secure_payload = {
+                    "password": st.secrets["admin_password"],
+                    "data": updated_data
+                }
+                
+                try:
+                    response = requests.post(st.secrets["web_app_url"], json=secure_payload)
+                    if response.text == "Success":
+                        st.success("Next round generated and pushed to the live database!")
+                        st.cache_data.clear()
+                        st.rerun()
+                    else:
+                        st.error(f"Failed to update. Google Script Response: {response.text}")
+                except Exception as e:
+                    st.error(f"Failed to connect to the database: {e}")
+        # --------------------------------
+
     else:
+        # This is the public read-only view
         if entered_password:
             st.error("Incorrect password. Viewing in read-only mode.")
             
-        # Display the publicly filtered read-only table
         st.dataframe(display_matches, use_container_width=True, hide_index=True)
 
 with tab2:
@@ -102,7 +184,7 @@ with tab2:
 
 with tab3:
     st.header("Active Tournament Details")
-    st.dataframe(tourney_info, use_container_width=True, hide_index=True) # Usually doesn't need filtering
+    st.dataframe(tourney_info, use_container_width=True, hide_index=True)
 
 with tab4:
     st.header("Lifetime Player Statistics")
