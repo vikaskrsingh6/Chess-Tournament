@@ -23,12 +23,11 @@ def load_data(sheet_name):
     return df
 
 def generate_swiss_pairings(standings_df, matches_df):
-    # 1. Map out historical matchups and previous BYEs
     played_pairs = set()
     past_byes = set()
     
+    # 1. Map out historical matchups and previous BYEs
     for _, row in matches_df.iterrows():
-        # Ensure your Google Sheet uses "Player 1" and "Player 2" as headers
         p1, p2 = row["Player 1"], row["Player 2"] 
         if p1 == "BYE": past_byes.add(p2)
         elif p2 == "BYE": past_byes.add(p1)
@@ -46,7 +45,7 @@ def generate_swiss_pairings(standings_df, matches_df):
     if len(unpaired) % 2 != 0:
         for player in reversed(unpaired):
             if player not in past_byes:
-                new_matches.append({"Player 1": player, "Player 2": "BYE", "Result": "Player 1 Wins"})
+                new_matches.append({"Match Number": "", "Player 1": player, "Player 2": "BYE", "Result": "Player 1 Wins"})
                 unpaired.remove(player)
                 break
 
@@ -57,13 +56,12 @@ def generate_swiss_pairings(standings_df, matches_df):
         
         for i, p2 in enumerate(unpaired):
             if frozenset([p1, p2]) not in played_pairs:
-                new_matches.append({"Player 1": p1, "Player 2": p2, "Result": "Pending"})
+                new_matches.append({"Match Number": "", "Player 1": p1, "Player 2": p2, "Result": "Pending"})
                 unpaired.pop(i)
                 paired = True
                 break
                 
         if not paired:
-            # If no valid opponent is found, mathematical dead-end reached
             return None 
 
     return new_matches
@@ -76,14 +74,12 @@ stats = load_data("Lifetime_Stats")
 
 # 2. Global Player Filter
 st.markdown("### 🔍 Global Player Search")
-# Extract a clean list of all unique players from the standings
 player_list = ["All Players"] + sorted(standings["Player"].dropna().unique().tolist())
 selected_player = st.selectbox("Select a player to filter the dashboard views:", player_list)
 
 # Filter the public viewing dataframes based on selection
 if selected_player != "All Players":
-    # Adjust "Player_1" to "Player 1" here if your spreadsheet doesn't use underscores!
-    display_matches = matches[(matches["Player_1"] == selected_player) | (matches["Player_2"] == selected_player)]
+    display_matches = matches[(matches["Player 1"] == selected_player) | (matches["Player 2"] == selected_player)]
     display_standings = standings[standings["Player"] == selected_player]
     display_stats = stats[stats["Player Name"] == selected_player]
 else:
@@ -118,17 +114,17 @@ with tab1:
         )
         
         if st.button("Save Match Results"):
-		clean_edited_matches = edited_matches.fillna("")            
-		updated_data = [edited_matches.columns.values.tolist()] + edited_matches.values.tolist()
+            # FIX: Fill NaN with blank strings before converting to list
+            clean_edited_matches = edited_matches.fillna("")
+            updated_data = [clean_edited_matches.columns.values.tolist()] + clean_edited_matches.values.tolist()
             
             secure_payload = {
                 "password": st.secrets["admin_password"],
                 "data": updated_data
             }
-            web_app_url = st.secrets["web_app_url"]
             
             try:
-                response = requests.post(web_app_url, json=secure_payload)
+                response = requests.post(st.secrets["web_app_url"], json=secure_payload)
                 if response.text == "Success":
                     st.success("Successfully updated the live database!")
                     st.cache_data.clear()
@@ -138,7 +134,7 @@ with tab1:
             except Exception as e:
                 st.error(f"Failed to connect to the database: {e}")
         
-        # --- NEW TOURNAMENT CONTROLS ---
+        # --- TOURNAMENT CONTROLS ---
         st.divider() 
         st.subheader("Tournament Controls")
         
@@ -148,14 +144,12 @@ with tab1:
             if new_pairings is None:
                 st.error("Cannot generate more rounds: All valid combinations have been played!")
             else:
-                # Combine old matches with the newly generated matches
                 new_matches_df = pd.DataFrame(new_pairings)
                 updated_matches = pd.concat([matches, new_matches_df], ignore_index=True)
-
-		# --- THE FIX: Replace all NaN values with empty strings ---
+                
+                # FIX: Fill NaN with blank strings to make JSON compliant
                 updated_matches = updated_matches.fillna("")
                 
-                # Format for Google Apps Script
                 updated_data = [updated_matches.columns.values.tolist()] + updated_matches.values.tolist()
                 
                 secure_payload = {
@@ -176,7 +170,6 @@ with tab1:
         # --------------------------------
 
     else:
-        # This is the public read-only view
         if entered_password:
             st.error("Incorrect password. Viewing in read-only mode.")
             
