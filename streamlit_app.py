@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+import time
 
 st.set_page_config(page_title="The Chessers", layout="wide")
 
@@ -14,7 +15,9 @@ sheet_id = "1wFk8_qx7iHsVnOk_dq93yXn6OcHaODLvmt7E_h06oBM"
 @st.cache_data(ttl=300)
 def load_data(sheet_name):
     # The &headers=1 parameter forces Google to only use the top row as the header
-    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}&headers=1"
+    cache_buster = int(time.time())
+    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}&headers=1&_={cache_buster}"
+    
     df = pd.read_csv(url)
 
     # Prune any phantom columns created by Google Sheets
