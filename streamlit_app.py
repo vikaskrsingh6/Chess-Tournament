@@ -37,6 +37,12 @@ def generate_swiss_pairings(standings_df, matches_df):
         else:
             played_pairs.add(frozenset([p1, p2]))
 
+    # --- THE FIX: Find the next starting Match Number ---
+    # Convert existing numbers safely, treating blanks as 0, then find the highest number
+    existing_numbers = pd.to_numeric(matches_df["Match Number"], errors="coerce").fillna(0)
+    next_match_num = int(existing_numbers.max()) + 1 if not existing_numbers.empty else 1
+    # ----------------------------------------------------
+
     # 2. RANDOM SHUFFLE: Shuffle the dataframe first, then sort by Points 
     shuffled_players = standings_df.sample(frac=1).reset_index(drop=True)
     sorted_players = shuffled_players.sort_values(by="Points", ascending=False, kind="mergesort")["Player"].tolist()
@@ -48,7 +54,13 @@ def generate_swiss_pairings(standings_df, matches_df):
     if len(unpaired) % 2 != 0:
         for player in reversed(unpaired):
             if player not in past_byes:
-                new_matches.append({"Match Number": "", "Player 1": player, "Player 2": "BYE", "Result": "Player 1 Wins"})
+                new_matches.append({
+                    "Match Number": next_match_num, 
+                    "Player 1": player, 
+                    "Player 2": "BYE", 
+                    "Result": "Player 1 Wins"
+                })
+                next_match_num += 1 # Count up for the next match
                 unpaired.remove(player)
                 break
 
@@ -59,7 +71,13 @@ def generate_swiss_pairings(standings_df, matches_df):
         
         for i, p2 in enumerate(unpaired):
             if frozenset([p1, p2]) not in played_pairs:
-                new_matches.append({"Match Number": "", "Player 1": p1, "Player 2": p2, "Result": "Pending"})
+                new_matches.append({
+                    "Match Number": next_match_num, 
+                    "Player 1": p1, 
+                    "Player 2": p2, 
+                    "Result": "Pending"
+                })
+                next_match_num += 1 # Count up for the next match
                 unpaired.pop(i)
                 paired = True
                 break
